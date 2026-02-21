@@ -6,6 +6,9 @@
 
 % ============================
 
+%filtrado
+G = fspecial('gauss',7,1.5);
+
 % ===== INTRODUCCIÓN =========
 % Cargamos la imagen imagen.png
 im = imread('FC_PROY1/imagen.png');
@@ -22,7 +25,10 @@ figure
 imshow(im);
 title('imagen.png tras cambiar el valor de los pixeles');
 % Calculamos el error cometido con std2()
-desviacion_standard = std2(im2double(imread('FC_PROY1/imagen.png'))- im);
+desviacion_standard = std2(im2double(imread('FC_PROY1/imagen.png'))- im)
+% Calculamos la desviación fiiltrada
+im_filtrada = imfilter(im, G, 'symm');
+desviacion_standard_filtrada = std2(im_filtrada - im2double(imread('FC_PROY1/imagen.png')))
 
 
 % ===== DITHERING POR DIFUSION DE ERROR =====
@@ -80,7 +86,11 @@ imshow(zona_ojo);
 title('Zona del ojo');
 
 % Volvemos a calcular la desviación estandar de la diferencia entre la original y el resultado que hemos obtenido tras aplicar el dithering
-desviacion_standard_1 = std2(im2double(imread('FC_PROY1/imagen.png'))- resultado)
+desviacion_standard_dither = std2(im2double(imread('FC_PROY1/imagen.png'))- resultado)
+
+% desviaciónen estandar filtrada
+im_filtrada_dither = imfilter(resultado, G, 'symm');
+desviacion_filtrada_dither = std2(im_filtrada_dither - im2double(imread('FC_PROY1/imagen.png')))
 
 % Mostramos la curva de Hilbert que recorre todos los pixeles 512 x 512
 load('FC_PROY1/hilbert.mat');
@@ -125,6 +135,11 @@ figure
 zona_ojoH = result_hilbert(110:220, 320:440);
 imshow(zona_ojoH);
 title('Zona del ojo - hilbert');
+
+desviacion_hilbert = std2(im2double(imread('FC_PROY1/imagen.png'))- result_hilbert)
+% desviación hilbert filtrada
+im_filtrada_hilbert = imfilter(result_hilbert, G, 'symm');
+desviacion_filtrada_hilbert = std2(im_filtrada_hilbert - im2double(imread('FC_PROY1/imagen.png')))
 
 % funcion para repatir el error a sus 3 vecinos
 function im = dither_3vecinos(im)
@@ -211,6 +226,18 @@ figure
 zona_ojo3V = result3vecinos(110:220, 320:440);
 imshow(zona_ojo3V);
 title('Zona del ojo - 3 vecinos');
+
+% calculamos la desviación al haber aplicado aproximación a los 3 vecinos   
+desviacion_3vecinos = std2(im2double(imread('FC_PROY1/imagen.png'))- result3vecinos)
+% desviación 3 vecinos filtrada
+im_filtrada_3vecinos = imfilter(result3vecinos, G, 'symm');
+desviacion_filtrada_3vecinos = std2(im_filtrada_3vecinos - im2double(imread('FC_PROY1/imagen.png')))
+
+
+
+
+
+
 
 
 
