@@ -1,3 +1,4 @@
+
 % ============================
 
 % LABORATORIO 1 apartado 4 - FOTOGRAFÍA COMPUTACIONAL
