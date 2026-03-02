@@ -7,7 +7,7 @@
 
 % ============================
 
-% ===== Mostrar imagen oculta al igual que con cervino.png del lab0=========
+% ===== Mostrar imagen oculta al igual que con cervino.png del lab0 =========
 clear; clc; close all;
 
 im = imread('FC_PROY1/imagen.png');
