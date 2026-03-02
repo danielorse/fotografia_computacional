@@ -76,7 +76,7 @@ load H1
 % Construir matriz XY homogénea (3x77)
 XY = [X; Y; ones(1, length(X))];
 % Proyectar con H1
-UVW = H1 * XY;
+UVW = H * XY;
 % Dividir punto a punto: U/W y V/W
 up = UVW(1,:) ./ UVW(3,:); 
 vp = UVW(2,:) ./ UVW(3,:);
