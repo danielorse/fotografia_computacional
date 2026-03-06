@@ -103,11 +103,13 @@ show_err_malla(du, dv);
 H = get_proy(X, Y, u, v);
 fprintf('Nueva matriz H (77 puntos):\n');
 vuelca_matriz(H);
+fprintf('\n');
 % Guardar como H77 para uso en apartados posteriores
 save H77 H;
 
-
-
+load H77 % Cargamos H77
+% mostramos u0, v0 y f local obtenida a partir de H77
+[f, R, X0] = get_data_from_H(H); 
 
 
 %%  FUNCIONES AUXILIARES A COMPLETAR   %%
@@ -137,8 +139,68 @@ end
 
 function [f,R,X0]=get_data_from_H(H)
   % Definir valores de u0, v0
+  im=imread('malla.jpg'); 
+  [N,M,~]=size(im); 
+  u0 = M/2;
+  v0 = N/2;
+ fprintf('Usamos u0=%1.f, v0=%.1f   (px)\n', u0, v0);
+  % Construimos la matriz B
+  B = [1 0 -u0; 0 1 -v0; -u0 -v0 (u0^2 + v0^2)];
+  % Obtenemos las dos primeras columnas de la matriz H y (H31 H32 H33)
+  h1 = H(:,1);
+  h2 = H(:,2);
+  H31 = H(3,1); H32 = H(3,2); H33 = H(3,3);
+  % Calculamos f 
+  numerador = -(h1.' * B * h2);
+  denominador = (H31 * H32 * H33);
+  f = sqrt(numerador / denominador);
+  fprintf('La f local que obtenemos es: f = %.2f px\n', f);
 
- 
+  % Calculamos K
+  K = [f 0 u0;0 f v0; 0 0 1];
+  Q = K \ H; % Calculamos Q = K^-1 * H
+  fprintf('Matriz Q:\n');
+  vuelca_matriz(Q);
+  fprintf('\n');
+
+  % Extraemos r1, r2 y t
+  r1 = Q(:,1);
+  r2 = Q(:,2);
+  t = Q(:,3);
+  % Calculamos sus normas
+  n1 = norm(r1);
+  n2 = norm(r2);
+  lambda = sqrt(n1*n2);
+  % Corregir escala
+  r1 = r1 / lambda;
+  r2 = r2 / lambda;
+  t  = t  / lambda;
+  fprintf('n1 = %.6f\n', n1);
+  fprintf('n2 = %.6f\n', n2);
+  fprintf('lambda = %.6f\n', lambda);
+  fprintf('r1 corregido:\n'); disp(r1);
+  fprintf('r2 corregido:\n'); disp(r2);
+  fprintf('t corregido:\n');  disp(t)
+
+  % Tercera columna de R y construcción de R
+  r3 = cross(r1, r2);
+  R  = [r1 r2 r3];
+  fprintf('Matriz R :\n');
+  disp(R);
+  
+  % Comprobamos los resultados de R*R' y R'*R
+  Ident = eye(3);
+  M1 = R*R'; M2 = R'*R;
+  fprintf('R*R'' =\n'); disp(M1);
+  fprintf('R''*R =\n'); disp(M2);
+  Dif1 = M1 - Ident;
+  Dif2 = M2 - Ident;
+  fprintf('||R''R - I|| = \n'); disp(Dif1);
+  fprintf('||RR'' - I|| = \n'); disp(Dif2);
+
+  % Despejamos X0 a partir de R y t
+  X0 = -R' * t
+
 end
 
 function out=convertir_Rw(in)
