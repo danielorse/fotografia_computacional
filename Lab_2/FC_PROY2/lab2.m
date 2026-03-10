@@ -1,3 +1,4 @@
+clear;clc;
 im=imread('malla.jpg'); 
 [N,M,~]=size(im); 
 
@@ -8,24 +9,24 @@ aux=rgb2gray(im); G=fspecial('gaussian',15,5); aux=imfilter(aux,G);
 figure(1); imshow(im)
 lista={'superior izda ','superior drcha','inferior drcha','inferior izda '};
 u=zeros(1,4); v=zeros(1,4);  % vectores para guardar coordenadas esquinas   
-for k=1:4  
-  fprintf('Pincha esquina %s:',lista{k});  
-  [x,y]=ginput(1); 
-  
-  fprintf('x=%6.1f,y=%6.1f\n',x,y);
-  hold on; 
-   plot(x,y,'ro','MarkerFaceCol','r','MarkerSize',3); 
-   % === modificación del bucle ===
-    [x,y]=refinar(x,y,aux);
-    fprintf('Coordenadas refinadas: x=%6.1f,y=%6.1f\n',x,y);
-   % guardamos coordenadas refinadas
-    u(k)=x; v(k)=y;
-   % marcamos el punto refinado en verde
-    plot(x,y,'go','MarkerFaceCol','g','MarkerSize',5);
-   % ===============================
-  hold off
-   
-end
+% for k=1:4  
+%   fprintf('Pincha esquina %s:',lista{k});  
+%   [x,y]=ginput(1); 
+% 
+%   fprintf('x=%6.1f,y=%6.1f\n',x,y);
+%   hold on; 
+%    plot(x,y,'ro','MarkerFaceCol','r','MarkerSize',3); 
+%    % === modificación del bucle ===
+%     [x,y]=refinar(x,y,aux);
+%     fprintf('Coordenadas refinadas: x=%6.1f,y=%6.1f\n',x,y);
+%    % guardamos coordenadas refinadas
+%     u(k)=x; v(k)=y;
+%    % marcamos el punto refinado en verde
+%     plot(x,y,'go','MarkerFaceCol','g','MarkerSize',5);
+%    % ===============================
+%   hold off
+% 
+% end
 
 
 %% Continuar aqu� el script con el resto de los apartados del script
@@ -33,37 +34,39 @@ end
 % Calculo de la matriz H
 X = [-100, 100, 100, -100];
 Y = [  60,  60, -60,  -60];
-H = get_proy(X,Y,u,v);
+load H1;
+%H = get_proy(X,Y,u,v);
 % Mostramos H
 fprintf('Matriz H:\n'); vuelca_matriz(H);
 % Guardamos lla matriz
-save H1 H;
+%save H1 H;
 
 figure(2); imshow(im)
 lista2={'superior izda ','superior drcha','inferior drcha','inferior izda '};
 u1=zeros(1,4); v1=zeros(1,4);  % vectores para guardar coordenadas esquinas   
-for k=1:4  
-  fprintf('Pincha esquina %s:',lista2{k});  
-  [x,y]=ginput(1); 
-  
-  fprintf('x=%6.1f,y=%6.1f\n',x,y);
-  hold on; 
-   plot(x,y,'ro','MarkerFaceCol','r','MarkerSize',3); 
-   % === modificación del bucle ===
-    [x,y]=refinar(x,y,aux);
-    fprintf('Coordenadas refinadas: x=%6.1f,y=%6.1f\n',x,y);
-   % guardamos coordenadas refinadas
-    u1(k)=x; v1(k)=y;
-   % marcamos el punto refinado en verde
-    plot(x,y,'go','MarkerFaceCol','g','MarkerSize',5);
-   % ===============================
-  hold off
-end
+% for k=1:4  
+%   fprintf('Pincha esquina %s:',lista2{k});  
+%   [x,y]=ginput(1); 
+% 
+%   fprintf('x=%6.1f,y=%6.1f\n',x,y);
+%   hold on; 
+%    plot(x,y,'ro','MarkerFaceCol','r','MarkerSize',3); 
+%    % === modificación del bucle ===
+%     [x,y]=refinar(x,y,aux);
+%     fprintf('Coordenadas refinadas: x=%6.1f,y=%6.1f\n',x,y);
+%    % guardamos coordenadas refinadas
+%     u1(k)=x; v1(k)=y;
+%    % marcamos el punto refinado en verde
+%     plot(x,y,'go','MarkerFaceCol','g','MarkerSize',5);
+%    % ===============================
+%   hold off
+% end
 
 X1 = [80,100,100,80];
 Y1 = [60,60,40,40];
 
-H2 = get_proy(X1,Y1,u1,v1);
+%H2 = get_proy(X1,Y1,u1,v1);
+load H2;
 % Mostramos H
 fprintf('Matriz H2:\n'); vuelca_matriz(H2);
 % Guardamos lla matriz
@@ -110,8 +113,176 @@ save H77 H;
 load H77 % Cargamos H77
 % mostramos u0, v0 y f local obtenida a partir de H77
 [f, R, X0] = get_data_from_H(H); 
+w = convertir_Rw(R);
+
+%Parte 3
+fprintf("PARTE 3 \n")
+w_comp = [2; 0.5; 1.1];
+
+R1 = convertir_Rw(w_comp);
+
+fprintf('Matriz de rotacion R\n');
+disp(R1);
+
+% Comprobacion 
+w2 = convertir_Rw(R1);
+
+fprintf('Vector w2\n');
+disp(w2); %Tiene que ser 2;0,5;1,1 igual que la rotacion inicial de w
+
+% Vector de parametros inicial
+P0 = [w; X0; f];
+
+% Calcular vector de errores
+err = error_uv(P0,X,Y,u,v);
+
+% Norma del error
+norm_err = norm(err);
+
+fprintf('Norma del vector de errores: %.3f\n', norm_err);
+
+% Optimización con lsqnonlin
+opts = optimset('Algorithm','levenberg-marquardt','Display','off');
+f_min = @(P) error_uv(P,X,Y,u,v);
+P_opt = lsqnonlin(f_min,P0,[],[],opts);
+
+% calores optimizados
+w_opt  = P_opt(1:3)
+X0_opt = P_opt(4:6)
+f_opt  = P_opt(7);
+
+fprintf('Focal optimizada: %.3f px\n', f_opt);
+% Calcular error tras optimización
+
+err_opt = error_uv(P_opt,X,Y,u,v);
+norm_err_opt = norm(err_opt);
+
+fprintf('Norma del vector de errores tras optimización: %.3f\n', norm_err_opt);
+
+% Conversión de focal a mm
+
+im = imread('malla.jpg');
+[Nim,Mim,~] = size(im);
+
+% dimensiones sensor
+sensor_x = 23.7;
+
+px_mm = M / sensor_x;
+
+fprintf('Densidad de píxeles: %.3f px/mm\n', px_mm);
+
+f_mm_ini = f / px_mm;
+
+fprintf('Focal inicial en mm: %.3f mm\n', f_mm_ini);
+
+% Resultados iniciales usando la nueva matriz H
+
+w = convertir_Rw(R);
+
+fprintf('\n--- Estimacion inicial a partir de H ---\n');
+
+fprintf('Focal inicial f: %.3f px\n', f);
+
+fprintf('Vector de rotacion w:\n');
+disp(w);
+
+fprintf('Centro de la camara X0:\n');
+disp(X0);
+
+% Vector de parametros inicial
+P0 = [w; X0; f];
+
+% Evaluar error inicial
+
+err = error_uv(P0,X,Y,u,v);
+norm_err = norm(err);
+
+fprintf('Norma del vector de errores inicial: %.3f\n', norm_err);
 
 
+% Visualización de errores antes de optimizar
+
+% separar errores iniciales
+du = err(1:77)';
+dv = err(78:154)';
+
+show_err_malla(du,dv);
+
+title('Errores iniciales');
+
+
+% Visualización de errores tras optimización
+
+du_opt = err_opt(1:77);
+dv_opt = err_opt(78:154);
+
+show_err_malla(du_opt,dv_opt);
+
+title('Errores tras optimización');
+% Después de optimización
+
+fprintf('Focal optimizada: %.3f px\n', f_opt);
+
+f_mm = f_opt / px_mm;
+
+fprintf('Focal optimizada en mm: %.3f mm\n', f_mm);
+
+
+%Estimacion de la distorsion:
+fprintf("--ESTIMACTION--\n")
+figure
+imshow(im)
+hold on
+
+% puntos 67 y 77 (esquinas inferiores)
+plot(u(67),v(67),'ro','MarkerFaceColor','r','MarkerSize',8)
+plot(u(77),v(77),'ro','MarkerFaceColor','r','MarkerSize',8)
+
+% línea recta entre ellos
+plot([u(67) u(77)], [v(67) v(77)], 'r','LineWidth',2)
+
+title('Linea entre esquinas inferiores de la malla')
+
+hold off
+
+% Optimización incluyendo k1
+
+k1_ini = 0;
+P0_k1 = [w; X0; f; k1_ini];
+
+f_min = @(P) error_uv(P,X,Y,u,v);
+
+opts = optimset('Algorithm','levenberg-marquardt','Display','off');
+
+P_opt_k1 = lsqnonlin(f_min,P0_k1,[],[],opts);
+
+% parámetros optimizados
+w_k1  = P_opt_k1(1:3)
+X0_k1 = P_opt_k1(4:6)
+f_k1  = P_opt_k1(7)
+k1    = P_opt_k1(8)
+
+fprintf('Focal optimizada con distorsión: %.3f px\n', f_k1);
+fprintf('Coeficiente de distorsión k1: %.6f\n', k1);
+
+err_k1 = error_uv(P_opt_k1,X,Y,u,v);
+
+norm_err_k1 = norm(err_k1);
+
+fprintf('Norma del error con distorsión: %.3f\n', norm_err_k1);
+
+du_k1 = err_k1(1:77);
+dv_k1 = err_k1(78:154);
+
+show_err_malla(du_k1,dv_k1);
+
+title('Errores tras optimización con distorsión');
+
+
+fprintf('\n---- RESULTADOS ----\n');
+fprintf('Error inicial: %.3f\n', norm_err);
+fprintf('Error optimizado: %.3f\n', norm_err_opt);
+fprintf('Error con distorsion: %.3f\n', norm_err_k1);
 %%  FUNCIONES AUXILIARES A COMPLETAR   %%
 
 function [x,y]=refinar(x,y,aux)
@@ -143,7 +314,7 @@ function [f,R,X0]=get_data_from_H(H)
   [N,M,~]=size(im); 
   u0 = M/2;
   v0 = N/2;
- fprintf('Usamos u0=%1.f, v0=%.1f   (px)\n', u0, v0);
+  fprintf('Usamos u0=%1.f, v0=%.1f   (px)\n', u0, v0);
   % Construimos la matriz B
   B = [1 0 -u0; 0 1 -v0; -u0 -v0 (u0^2 + v0^2)];
   % Obtenemos las dos primeras columnas de la matriz H y (H31 H32 H33)
@@ -175,12 +346,12 @@ function [f,R,X0]=get_data_from_H(H)
   r1 = r1 / lambda;
   r2 = r2 / lambda;
   t  = t  / lambda;
-  fprintf('n1 = %.6f\n', n1);
-  fprintf('n2 = %.6f\n', n2);
-  fprintf('lambda = %.6f\n', lambda);
-  fprintf('r1 corregido:\n'); disp(r1);
-  fprintf('r2 corregido:\n'); disp(r2);
-  fprintf('t corregido:\n');  disp(t)
+  % fprintf('n1 = %.6f\n', n1);
+  % fprintf('n2 = %.6f\n', n2);
+  % fprintf('lambda = %.6f\n', lambda);
+  % fprintf('r1 corregido:\n'); disp(r1);
+  % fprintf('r2 corregido:\n'); disp(r2);
+  % fprintf('t corregido:\n');  disp(t);
 
   % Tercera columna de R y construcción de R
   r3 = cross(r1, r2);
@@ -191,35 +362,127 @@ function [f,R,X0]=get_data_from_H(H)
   % Comprobamos los resultados de R*R' y R'*R
   Ident = eye(3);
   M1 = R*R'; M2 = R'*R;
-  fprintf('R*R'' =\n'); disp(M1);
-  fprintf('R''*R =\n'); disp(M2);
+  % fprintf('R*R'' =\n'); disp(M1);
+  % fprintf('R''*R =\n'); disp(M2);
   Dif1 = M1 - Ident;
   Dif2 = M2 - Ident;
-  fprintf('||R''R - I|| = \n'); disp(Dif1);
-  fprintf('||RR'' - I|| = \n'); disp(Dif2);
+  % fprintf('||R''R - I|| = \n'); disp(Dif1);
+  % fprintf('||RR'' - I|| = \n'); disp(Dif2);
 
   % Despejamos X0 a partir de R y t
-  X0 = -R' * t
+  X0 = -R' * t;
 
 end
 
 function out=convertir_Rw(in)
+
 Ndata=numel(in);
-if Ndata==9  % Conversion R --> w
-  R = in; w=zeros(3,1); % Inicializo vector w 
-  % Calcula vector de giro w equivalente a matriz R
-   
-  out=w;  % Asigno w a la salida
+
+if Ndata==9   % Conversion R --> w
+    
+    R = in;
+    
+    theta = acos((trace(R)-1)/2);
+    
+    if abs(theta) < 1e-10
+        w = [0;0;0];
+    else
+        wx = (R(3,2)-R(2,3))/(2*sin(theta));
+        wy = (R(1,3)-R(3,1))/(2*sin(theta));
+        wz = (R(2,1)-R(1,2))/(2*sin(theta));
+        
+        w = theta * [wx; wy; wz];
+    end
+    
+    out = w;
+
 else   % Conversion w --> R
-  w=in;  
-  % Calcula matriz de rotacion R equivalente a vector w
+    
+    w = in;
+    
+    theta = norm(w);
+    
+    if theta < 1e-10
+        R = eye(3);
+    else
+        
+        k = w/theta;
+        
+        K = [  0    -k(3)  k(2);
+              k(3)   0    -k(1);
+             -k(2)  k(1)   0   ];
+         
+        R = eye(3) + sin(theta)*K + (1-cos(theta))*(K*K);
+        
+    end
+    
+    out = R;
 
-  out = R;  % Asigno R a la salida 
-end    
-
+end
 end
 
 function err=error_uv(P,X,Y,u,v)
+
+% Reservar vectores
+N = length(u);
+up = zeros(1,N);
+vp = zeros(1,N);
+
+% Extraer parametros
+w  = P(1:3);
+X0 = P(4:6);
+f  = P(7);
+
+if numel(P) >= 8
+    k1 = P(8);
+else
+    k1 = 0;
+end
+% Obtener matriz de rotacion
+R = convertir_Rw(w);
+
+% Vector traslacion
+t = -R*X0;
+
+% Matriz Q
+Q = [R(:,1) R(:,2) t];
+
+% Coordenadas homogeneas del plano
+XY = [X; Y; ones(1,N)];
+
+% Coordenadas en camara
+XYZ_cam = Q * XY;
+
+Xcam = XYZ_cam(1,:);
+Ycam = XYZ_cam(2,:);
+Zcam = XYZ_cam(3,:);
+
+% Coordenadas normalizadas
+xn = Xcam ./ Zcam;
+yn = Ycam ./ Zcam;
+
+r2 = xn.^2 + yn.^2;
+
+xn = xn .* (1 + k1 * r2);
+yn = yn .* (1 + k1 * r2);
+
+% centro imagen
+im = imread('malla.jpg');
+[Nim,Mim,~] = size(im);
+
+u0 = Mim/2;
+v0 = Nim/2;
+
+% pasar a pixeles
+up = u0 + f * xn;
+vp = v0 + f * yn;
+
+% errores
+du = u - up;
+dv = v - vp;
+
+% vector error
+err = [du dv]';
 
 end
 
