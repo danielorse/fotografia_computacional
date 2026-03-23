@@ -58,12 +58,12 @@ im = imread('black.pgm');  % "black frame"
     %Como tenemos el numero de negativos y 0's con el truncamiento
     %anterior, podemos restar ese numero al total para trabajar con ello
     nPositivos = sum(Isin0 (:)>0);
-    pno0 = (nPositivos * 2)/numel(Isin0);
+    pno0 = (nPositivos * 2)/numel(Isin0)
     p0real = 1- pno0;
     p0realsigma = sqrt(2) / (4 * erfinv(p0real));
 
-    fprintf('Calculo corregido de p0 y sigma:\n');
-    fprintf('p0 = %.2f, sigma = %.2f\n', p0real, p0realsigma);
+    fprintf('Tras cuantificar:\n');
+    fprintf('media = %.2f, sigma = %.2f\n', p0real, std2(I));
     fprintf('\n');
 % 3.1)  Lectura y escalado de los datos RAW
 
