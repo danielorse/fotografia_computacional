@@ -21,7 +21,25 @@ im = imread('black.pgm');  % "black frame"
     histogram(double(R(:)), 100); xlim([-5 25]);
     grid on; % cuadrícula 
     title('Histograma del canal R'); xlabel('Valor del pixel'); ylabel('Num pixeles');
+    % RAngo del canal rojo
+    fprintf('El rango de R es: [%d, %d]\n', min(R(:)), max(R(:)));
 
+    % Calculo del nivel de ruido
+    mu = 0;
+    s = 0.5;
+    r = mu + s*randn(1000);
+    % Comprobamos la estimación
+    fprintf('media = %.2f, sigma = %.2f\n', mean2(r), std2(r));
+    fprintf('\n');
+    
+    % Cambiamos valores del ruido por su entero más próximo
+    I = round(r);
+    fprintf('Tras cuantificar:\n');
+    fprintf('media = %.2f, sigma = %.2f\n', mean2(I), std2(I));
+    fprintf('\n');
+
+    % Estimamos p0 yy valor de la desviación
+    po = sum (I (:)== 0)
 
 % 3.1)  Lectura y escalado de los datos RAW
 
