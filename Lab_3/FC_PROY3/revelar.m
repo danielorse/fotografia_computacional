@@ -65,6 +65,55 @@ im = imread('black.pgm');  % "black frame"
     fprintf('Calculo corregido de p0 y sigma:\n');
     fprintf('p0 = %.2f, sigma = %.2f\n', p0real, p0realsigma);
     fprintf('\n');
+    
+    % Aplicamos la estimación Sigma a los datos de los canals
+    canales = {R, G1, G2, B};
+    for k = 1:4
+        canal = canales{k};
+        canalSinNeg = canal; 
+        % en caso de haber algun valor negativo lo ponemos a 0 igual que en apartados previos
+        canalSinNeg(canalSinNeg < 0) = 0; 
+        % A partir de los valores positivos  estimamos el p0 corregido
+        nPositivos = sum(canalSinNeg(:) > 0);
+        pno0 = (nPositivos * 2) / numel(canalSinNeg);
+        p0real = 1 - pno0;
+        % calculamos las estimaciones
+        sigma_mejorada(k) = sqrt(2) / (4 * erfinv(p0real));
+        sigma_std2(k) = std2(double(canal));
+    end
+    
+    % Mostramos resultados
+    nombres = {'R', 'G1', 'G2', 'B'};
+    fprintf('Estimación mejorada de sigma:\n');
+    for k = 1:4
+        fprintf('%s = %.2f\n', nombres{k}, sigma_mejorada(k));
+    end
+
+    fprintf('\nEstimación de sigma con std2():\n');
+    for k = 1:4
+        fprintf('%s = %.2f\n', nombres{k}, sigma_std2(k));
+    end
+
+    % Cargamos datos del ruido térmico
+    load data_term
+    % Guardamos el valor sigma estimado en S
+    S = zeros(size(T));
+    for k = 1:length(T)
+        frame = black(:,:,k);
+        S(k) = std2(double(frame));
+    end
+    % Gráfica de los valores obtenidos
+    figure;
+    plot(log2(T), S, 'o-');
+    grid on;
+    xlabel('log2(T)'); ylabel('\sigma estimada');
+    title('Ruido térmico segun tiempo de exposición');
+    % Mostramos también los valores obtenidos
+    fprintf('Valores de T:\n');
+    disp(T);
+    fprintf('Valores de S:\n');
+    disp(S);
+
 % 3.1)  Lectura y escalado de los datos RAW
 
 raw=imread('raw.pgm');  
