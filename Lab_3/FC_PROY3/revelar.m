@@ -110,9 +110,78 @@ im = imread('black.pgm');  % "black frame"
     title('Ruido térmico segun tiempo de exposición');
     % Mostramos también los valores obtenidos
     fprintf('Valores de T:\n');
-    disp(T);
+    fprintf(' %.4f', T);
+    fprintf('\n');
     fprintf('Valores de S:\n');
-    disp(S);
+    fprintf(' %.4f', S);
+    fprintf('\n');
+
+
+% 2) Estimación de otros tipos de ruido del sensor
+ clear; clc; close all;
+
+ % Cargamos los datos
+ load data_noise
+ % Recorremos las 12 tomas y calculamos la  exposición media y la desviación estándar
+ for k = 1:length(T)
+    frame = G(:,:,k);
+    % Exposición media del fragmento
+    E(k) = mean2(frame);
+    % Ruido total del fragmento
+    S(k) = std2(frame);
+ end
+ % Gráfica de E vs T
+ figure;
+ plot(T, E, '-o');
+ grid on;
+ xlabel('Tiempo de exposición T (s)');
+ ylabel('Exposición media E (ADU)');
+ title('Ruido total frente a T');
+ % Mostramos resultados
+ fprintf('Valores de T:\n');
+ fprintf('| %.4f |', T);
+ fprintf('\n');
+ fprintf('Valores de E:\n');
+ fprintf('| %.4f |', E);
+ fprintf('\n');
+ fprintf('Valores de S:\n');
+ fprintf('| %.4f |', S);
+ fprintf('\n');
+
+ % Gráfica de S vs E
+ figure;
+ plot(E, S, 'ro', 'LineWidth', 1.5, 'MarkerSize', 6);
+ grid on;
+ xlabel('Exposición media E (ADU)');
+ ylabel('Desviación estándar S (ADU)');
+ title('Ruido total frente a exposición');
+ % Ajuste de S2
+ S2 = S.^2;
+ c = polyfit(E, S2, 2);
+ % Reordemaos porque los coeficientes en la funcón son devueltos de mayor a menor
+ c1 = c(3);
+ c2 = c(2);
+ c3 = c(1);
+ % Mostrar resultados
+ fprintf('\nCoeficientes del ajuste:\n');
+ fprintf('c1 = %.6f\n', c1);
+ fprintf('c2 = %.6f\n', c2);
+ fprintf('c3 = %.6f\n', c3);
+ fprintf( '-------------\n');
+ % Crear vector de exposición y calcular la curva del ajuste
+ e = 1:2000;
+ s = sqrt(c1 + c2*e + c3*e.^2);
+ % Superponer el ajuste sobre los datos medidos
+ figure;
+ plot(E, S, 'ro', 'LineWidth', 1.5, 'MarkerSize', 6);
+ hold on;
+ plot(e, s, 'b', 'LineWidth', 1.5);
+ grid on;
+ xlabel('Exposición media E (ADU)');
+ ylabel('Desviación estándar S (ADU)');
+ title('Ruido total frente a exposición y ajuste');
+ oR = sqrt(c1); G = c2; K = sqrt(c3);
+ disp(oR); disp(G);disp(K);
 
 % 3.1)  Lectura y escalado de los datos RAW
 
