@@ -224,13 +224,175 @@ im = imread('black.pgm');  % "black frame"
 
     % Aplicamos la función corregir.m 
     bw_corregida = corregir(bw, 1.2, 0.1);
+
+    
 % 3.2) Demultiplexado, paso a sRGB + gamma
 
+% Conversión a sRGB
+sR = R - 0.14*G - 0.08*B;
+sG = G - 0.13*R - 0.43*B;
+sB = B + 0.01*R - 0.21*G;
+
+% Construcción de imagen RGB
+rgb = cat(3, sR, sG, sB);
+
+% Volcar el máximo valor de la nueva imagen
+max_rgb = max(rgb(:));
+fprintf('Valor máximo de la nueva imagen: %.4f\n', max_rgb);
+
+% Normalización
+rgb = rgb / max_rgb;
+
+% Recorte a 0-1
+rgb(rgb < 0) = 0;
+rgb(rgb > 1) = 1;
+
+    % Aplicación de la función gamma
+    
+    % Parámetros
+    x0 = 0.00313;
+    a = 0.055;
+    gamma = 2.4;
+    
+    % Inicializar
+    rgb_gamma = zeros(size(rgb));
+    
+    %Función gamma
+    mask = rgb < x0;
+    
+    rgb_gamma(mask) = 12.92 * rgb(mask);
+    rgb_gamma(~mask) = (1 + a) * rgb(~mask).^(1/gamma) - a;
+    
+    % Máximo valor tras aplicar gamma
+    max_gamma = max(rgb_gamma(:));
+    fprintf('Valor máximo tras aplicar gamma: %.4f\n', max_gamma);
+    
+    % Imagen resultante
+    figure;
+    imshow(rgb_gamma);
+    title('sRGB + gamma');
 
 % 3.3) Equilibrado de blancos
 
-% 3.4) Algoritmo alternativo WB
+% Medias de RGB
+mR = mean(R(:));
+mG = mean(G(:));
+mB = mean(B(:));
 
+fprintf('Medias: R=%.4f, G=%.4f, B=%.4f\n', mR, mG, mB);
+
+% Factores de corrección
+fR = mG / mR;
+fB = mG / mB;
+
+fprintf('Factores de corrección: fR=%.4f, fB=%.4f\n', fR, fB);
+
+R_wb = R * fR;
+G_wb = G;
+B_wb = B * fB;
+rgb_wb = cat(3, R_wb, G_wb, B_wb);
+
+%Imagen White Balance
+figure;
+imshow(rgb_wb);
+title('White Balance');
+
+% Ajustar F y delta (valores F y delta)
+F = 1.20;
+delta = 0.037;
+
+rgb_corr = corregir(rgb_wb, F, delta);
+
+
+% 3.4) Algoritmo alternativo WB
+ fprintf("\n\n3.4\n\n")
+ % Luminancia Y (espacio YIQ simplificado)
+Y = 0.299 * R + 0.587 * G + 0.114 * B;
+
+% Umbral (66% del máximo)
+umbral = 0.66 * max(Y(:));
+mask = Y >= umbral;
+
+% Medias solo en píxeles brillantes
+meanR = mean(R(mask));
+meanG = mean(G(mask));
+meanB = mean(B(mask));
+
+fprintf('Medias: R=%.4f, G=%.4f, B=%.4f\n', meanR, meanG, meanB);
+
+% Factores de corrección
+fR = meanG / meanR;
+fB = meanG / meanB;
+
+fprintf('Factores WB alternativo: fR=%.4f, fB=%.4f\n', fR, fB);
+
+% Aplicar WB
+R_alt = R * fR;
+G_alt = G;
+B_alt = B * fB;
+
+rgb_alt = cat(3, R_alt, G_alt, B_alt);
+
+% Mostrar resultado
+figure;
+imshow(rgb_alt);
+title('White Balance Alternativo');
+
+% Visualización de píxeles usados
+
+R_mask = R .* mask;
+G_mask = G .* mask;
+B_mask = B .* mask;
+
+rgb_mask = cat(3, R_mask, G_mask, B_mask);
+
+figure;
+imshow(rgb_mask);
+title('Pixeles usados para estimar la iluminacion');
+
+
+% Calcular I y Q
+I = 0.596 * R - 0.275 * G - 0.321 * B;
+Q = 0.212 * R - 0.523 * G + 0.311 * B;
+
+% Calcular col
+col = (abs(I) + abs(Q)) ./ (Y + eps);
+
+% Nueva máscara
+mask2 = (Y >= 0.66 * max(Y(:))) & (col < 0.33);
+
+% Visualización de píxeles usados
+rgb_mask2 = cat(3, R .* mask2, G .* mask2, B .* mask2);
+figure; imshow(rgb_mask2);
+title('Pixeles usados (brillo + poco color)');
+
+% Nuevas medias
+meanR2 = mean(R(mask2));
+meanG2 = mean(G(mask2));
+meanB2 = mean(B(mask2));
+
+% Nuevos factores
+fR2 = meanG2 / meanR2;
+fB2 = meanG2 / meanB2;
+
+fprintf('Factores WB mejorado: fR = %.4f, fB = %.4f\n', fR2, fB2);
+
+% Aplicar WB mejorado
+R_new = R * fR2;
+G_new = G;
+B_new = B * fB2;
+
+rgb_new = cat(3, R_new, G_new, B_new);
+
+% Aplicar WB
+    F = 1.21;      
+    delta = 0.043; 
+
+rgb_final = corregir(rgb_new, F, delta);
+
+figure;
+imshow(rgb_final);
+title('WB mejorado + correccion BC');
 
 % 3.5) Almacenamiento
 
