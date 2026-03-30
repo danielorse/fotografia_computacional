@@ -222,52 +222,47 @@ im = imread('black.pgm');  % "black frame"
     set(gcf, 'Name', 'Histograma BW');
     title('Histograma de la imagen B/W');
 
-    % Aplicamos la función corregir.m 
-    bw_corregida = corregir(bw, 1.2, 0.1);
-
+    % Aplicamos la función corregir.m
+    bw_corregida = corregir(bw, 1.2776, 0.0541);
     
 % 3.2) Demultiplexado, paso a sRGB + gamma
 
-% Conversión a sRGB
+% Generamos los nuevos canales sRGB
 sR = R - 0.14*G - 0.08*B;
 sG = G - 0.13*R - 0.43*B;
 sB = B + 0.01*R - 0.21*G;
 
-% Construcción de imagen RGB
+% Construimos imagen RGB
 rgb = cat(3, sR, sG, sB);
 
-% Volcar el máximo valor de la nueva imagen
+% Mostramos máximo valor de la nueva imagen
 max_rgb = max(rgb(:));
 fprintf('Valor máximo de la nueva imagen: %.4f\n', max_rgb);
 
-% Normalización
+% Normalizamos
 rgb = rgb / max_rgb;
 
-% Recorte a 0-1
+% Ponemos los valores de la imagen en el rango [0,1]
 rgb(rgb < 0) = 0;
 rgb(rgb > 1) = 1;
 
-    % Aplicación de la función gamma
-    
-    % Parámetros
+    % Aplicación de la función gamm
     x0 = 0.00313;
     a = 0.055;
     gamma = 2.4;
-    
-    % Inicializar
+    % Inicializamos
     rgb_gamma = zeros(size(rgb));
-    
     %Función gamma
     mask = rgb < x0;
-    
+
     rgb_gamma(mask) = 12.92 * rgb(mask);
     rgb_gamma(~mask) = (1 + a) * rgb(~mask).^(1/gamma) - a;
-    
-    % Máximo valor tras aplicar gamma
+
+    % Mostramos valor valor max tras aplicar gamma
     max_gamma = max(rgb_gamma(:));
     fprintf('Valor máximo tras aplicar gamma: %.4f\n', max_gamma);
-    
-    % Imagen resultante
+
+    % Restultado
     figure;
     imshow(rgb_gamma);
     title('sRGB + gamma');
@@ -297,7 +292,7 @@ figure;
 imshow(rgb_wb);
 title('White Balance');
 
-% Ajustar F y delta (valores F y delta)
+% Ajustamos F y delta (valores F y delta)
 F = 1.20;
 delta = 0.037;
 
@@ -313,7 +308,7 @@ Y = 0.299 * R + 0.587 * G + 0.114 * B;
 umbral = 0.66 * max(Y(:));
 mask = Y >= umbral;
 
-% Medias solo en píxeles brillantes
+% Medias, solo en píxeles brillantes
 meanR = mean(R(mask));
 meanG = mean(G(mask));
 meanB = mean(B(mask));
@@ -326,19 +321,19 @@ fB = meanG / meanB;
 
 fprintf('Factores WB alternativo: fR=%.4f, fB=%.4f\n', fR, fB);
 
-% Aplicar WB
+% Aplicamos WB
 R_alt = R * fR;
 G_alt = G;
 B_alt = B * fB;
 
 rgb_alt = cat(3, R_alt, G_alt, B_alt);
 
-% Mostrar resultado
+% Mostramos resultado
 figure;
 imshow(rgb_alt);
 title('White Balance Alternativo');
 
-% Visualización de píxeles usados
+% Mostramos píxeles usados
 
 R_mask = R .* mask;
 G_mask = G .* mask;
@@ -351,17 +346,17 @@ imshow(rgb_mask);
 title('Pixeles usados para estimar la iluminacion');
 
 
-% Calcular I y Q
+% Calculamos I y Q
 I = 0.596 * R - 0.275 * G - 0.321 * B;
 Q = 0.212 * R - 0.523 * G + 0.311 * B;
 
-% Calcular col
+% Calculamos col
 col = (abs(I) + abs(Q)) ./ (Y + eps);
 
 % Nueva máscara
 mask2 = (Y >= 0.66 * max(Y(:))) & (col < 0.33);
 
-% Visualización de píxeles usados
+%  píxeles usados
 rgb_mask2 = cat(3, R .* mask2, G .* mask2, B .* mask2);
 figure; imshow(rgb_mask2);
 title('Pixeles usados (brillo + poco color)');
@@ -377,14 +372,14 @@ fB2 = meanG2 / meanB2;
 
 fprintf('Factores WB mejorado: fR = %.4f, fB = %.4f\n', fR2, fB2);
 
-% Aplicar WB mejorado
+% Aplicamos WB mejorado
 R_new = R * fR2;
 G_new = G;
 B_new = B * fB2;
 
 rgb_new = cat(3, R_new, G_new, B_new);
 
-% Aplicar WB
+% Aplicamos WB
     F = 1.21;      
     delta = 0.043; 
 
@@ -396,3 +391,56 @@ title('WB mejorado + correccion BC');
 
 % 3.5) Almacenamiento
 
+% Volvemos a una imagen de bytes (8 bits por canal)
+im_out = uint8(255 * rgb_final);
+% Guardamos versión sin perdidas
+imwrite(im_out, 'foto.tif');
+% Guardado JPEG con distintas calidades
+    calidades = [98, 95, 90];
+    info_tif = dir('foto.tif');
+    tam_sin_comprimir = info_tif.bytes;
+    for Q = calidades
+        nombre_jpg = ['foto' num2str(Q) '.jpg'];
+        imwrite(im_out, nombre_jpg, 'Quality', Q);
+
+        info_jpg = dir(nombre_jpg);
+        factor_compresion = info_tif.bytes / info_jpg.bytes;
+        % Mostramos resultados
+        fprintf('JPEG Q=%d: %d bytes (%.3f MB) -> factor de compresion = %.3f\n', ...
+            Q, info_jpg.bytes, info_jpg.bytes / 1e6, factor_compresion);
+    end
+% === FUNCION corregir.m ===
+function im_corr = corregir(im, F, delta)
+    % Normalizamos la imagen al rango [0,1]
+    m = min(im(:));
+    M = max(im(:));
+    im_norm = (im - m) / (M - m);
+    % Aplicamos la corrección de brillo y contraste
+    im_mod = F * im_norm - delta;
+    % Calculamos el  porcentaje de píxeles saturados antes de recortar
+    % (Cambios)
+    [Mdim, Ndim, ~] = size(im_mod);
+
+    sat_neg = any(im_mod < 0, 3);
+    sat_pos = any(im_mod > 1, 3);
+
+    p_neg = 100 * sum(sat_neg(:)) / (Mdim * Ndim);
+    p_pos = 100 * sum(sat_pos(:)) / (Mdim * Ndim);
+    fprintf('Pixeles saturados por debajo de 0: %.4f %%\n', p_neg);
+    fprintf('Pixeles saturados por encima de 1: %.4f %%\n', p_pos);
+    % Recortamos valores al intervalo [0,1]
+    im_corr = im_mod;
+    im_corr(im_corr < 0) = 0;
+    im_corr(im_corr > 1) = 1;
+    % Mostramos la imagen corregida
+    figure;
+    imshow(im_corr);
+    set(gcf, 'Name', 'Corrección Brillo-Contraste');
+    title(sprintf('Imagen corregida (F = %.4f, \\delta = %.4f)', F, delta));
+    % Mostramos el histograma
+    figure;
+    histogram(im_corr(:));
+    xlim([-0.05 1.05]);
+    grid on;
+    title(sprintf('Histograma corregido (F = %.4f, \\delta = %.4f)', F, delta));
+    end
