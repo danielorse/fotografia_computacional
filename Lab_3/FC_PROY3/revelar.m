@@ -11,220 +11,220 @@ clear; clc; close all
 % 1.1) Manejo de imágenes RAW
 im = imread('black.pgm');  % "black frame"
 
-    % Extraemos los 4 cojnuntos de cada canal y los guardamos en matrices
-    R  = im(1:2:end, 1:2:end);
-    G1 = im(1:2:end, 2:2:end);
-    G2 = im(2:2:end, 1:2:end);
-    B  = im(2:2:end, 2:2:end);
-    % Histograma de R y gráfico rango [-5 25] en eje X
-    figure;
-    histogram(double(R(:)), 100); xlim([-5 25]);
-    grid on; % cuadrícula 
-    title('Histograma del canal R'); xlabel('Valor del pixel'); ylabel('Num pixeles');
-    % RAngo del canal rojo
-    fprintf('El rango de R es: [%d, %d]\n', min(R(:)), max(R(:)));
+% Extraemos los 4 cojnuntos de cada canal y los guardamos en matrices
+R  = im(1:2:end, 1:2:end);
+G1 = im(1:2:end, 2:2:end);
+G2 = im(2:2:end, 1:2:end);
+B  = im(2:2:end, 2:2:end);
+% Histograma de R y gráfico rango [-5 25] en eje X
+figure;
+histogram(double(R(:)), 100); xlim([-5 25]);
+grid on; % cuadrícula
+title('Histograma del canal R'); xlabel('Valor del pixel'); ylabel('Num pixeles');
+% RAngo del canal rojo
+fprintf('El rango de R es: [%d, %d]\n', min(R(:)), max(R(:)));
 
-    % Calculo del nivel de ruido
-    mu = 0;
-    s = 0.5;
-    r = mu + s*randn(1000);
-    % Comprobamos la estimación
-    fprintf('media = %.2f, sigma = %.2f\n', mean2(r), std2(r));
-    fprintf('\n');
-    
-    % Cambiamos valores del ruido por su entero más próximo
-    I = round(r);
-    fprintf('Tras cuantificar:\n');
-    fprintf('media = %.2f, sigma = %.2f\n', mean2(I), std2(I));
-    fprintf('\n');
+% Calculo del nivel de ruido
+mu = 0;
+s = 0.5;
+r = mu + s*randn(1000);
+% Comprobamos la estimación
+fprintf('media = %.2f, sigma = %.2f\n', mean2(r), std2(r));
+fprintf('\n');
 
-    % Estimamos p0 yy valor de la desviación
-    p0 = sum (I (:)== 0)/numel(I);
-    p0sigma = sqrt(2) / (4 * erfinv(p0));
-    fprintf('Calculo de p0 y sigma:\n');
-    fprintf('p0 = %.4f, p0sigma = %.4f\n', p0, p0sigma);
-    fprintf('\n');
-    
-    %Nueva estimacion de sigma con I filtrado
-    Isin0 = I;
-    Isin0(Isin0<0) = 0;
-    p00 = sum (Isin0 (:)== 0)/numel(Isin0);
-    p00sigma = sqrt(2) / (4 * erfinv(p00));
-    fprintf('Calculo de p0 sin negativos y sigma:\n');
-    fprintf('p0 = %.4f, p0sigma = %.4f\n', p00, p00sigma);
-    fprintf('\n');
+% Cambiamos valores del ruido por su entero más próximo
+I = round(r);
+fprintf('Tras cuantificar:\n');
+fprintf('media = %.2f, sigma = %.2f\n', mean2(I), std2(I));
+fprintf('\n');
 
-    %Contar I>0
-    %Como tenemos el numero de negativos y 0's con el truncamiento
-    %anterior, podemos restar ese numero al total para trabajar con ello
-    nPositivos = sum(Isin0 (:)>0);
-    pno0 = (nPositivos * 2)/numel(Isin0);
-    p0real = 1- pno0;
-    p0realsigma = sqrt(2) / (4 * erfinv(p0real));
+% Estimamos p0 yy valor de la desviación
+p0 = sum (I (:)== 0)/numel(I);
+p0sigma = sqrt(2) / (4 * erfinv(p0));
+fprintf('Calculo de p0 y sigma:\n');
+fprintf('p0 = %.4f, p0sigma = %.4f\n', p0, p0sigma);
+fprintf('\n');
 
-    fprintf('Calculo corregido de p0 y sigma:\n');
-    fprintf('p0 = %.2f, sigma = %.2f\n', p0real, p0realsigma);
-    fprintf('\n');
-    
-    % Aplicamos la estimación Sigma a los datos de los canals
-    canales = {R, G1, G2, B};
-    for k = 1:4
-        canal = canales{k};
-        canalSinNeg = canal; 
-        % en caso de haber algun valor negativo lo ponemos a 0 igual que en apartados previos
-        canalSinNeg(canalSinNeg < 0) = 0; 
-        % A partir de los valores positivos  estimamos el p0 corregido
-        nPositivos = sum(canalSinNeg(:) > 0);
-        pno0 = (nPositivos * 2) / numel(canalSinNeg);
-        p0real = 1 - pno0;
-        % calculamos las estimaciones
-        sigma_mejorada(k) = sqrt(2) / (4 * erfinv(p0real));
-        sigma_std2(k) = std2(double(canal));
-    end
-    
-    % Mostramos resultados
-    nombres = {'R', 'G1', 'G2', 'B'};
-    fprintf('Estimación mejorada de sigma:\n');
-    for k = 1:4
-        fprintf('%s = %.2f\n', nombres{k}, sigma_mejorada(k));
-    end
+%Nueva estimacion de sigma con I filtrado
+Isin0 = I;
+Isin0(Isin0<0) = 0;
+p00 = sum (Isin0 (:)== 0)/numel(Isin0);
+p00sigma = sqrt(2) / (4 * erfinv(p00));
+fprintf('Calculo de p0 sin negativos y sigma:\n');
+fprintf('p0 = %.4f, p0sigma = %.4f\n', p00, p00sigma);
+fprintf('\n');
 
-    fprintf('\nEstimación de sigma con std2():\n');
-    for k = 1:4
-        fprintf('%s = %.2f\n', nombres{k}, sigma_std2(k));
-    end
+%Contar I>0
+%Como tenemos el numero de negativos y 0's con el truncamiento
+%anterior, podemos restar ese numero al total para trabajar con ello
+nPositivos = sum(Isin0 (:)>0);
+pno0 = (nPositivos * 2)/numel(Isin0);
+p0real = 1- pno0;
+p0realsigma = sqrt(2) / (4 * erfinv(p0real));
 
-    % Cargamos datos del ruido térmico
-    load data_term
-    % Guardamos el valor sigma estimado en S
-    S = zeros(size(T));
-    for k = 1:length(T)
-        frame = black(:,:,k);
-        S(k) = std2(double(frame));
-    end
-    % Gráfica de los valores obtenidos
-    figure;
-    plot(log2(T), S, 'o-');
-    grid on;
-    xlabel('log2(T)'); ylabel('\sigma estimada');
-    title('Ruido térmico segun tiempo de exposición');
-    % Mostramos también los valores obtenidos
-    fprintf('Valores de T:\n');
-    fprintf(' %.4f', T);
-    fprintf('\n');
-    fprintf('Valores de S:\n');
-    fprintf(' %.4f', S);
-    fprintf('\n');
+fprintf('Calculo corregido de p0 y sigma:\n');
+fprintf('p0 = %.2f, sigma = %.2f\n', p0real, p0realsigma);
+fprintf('\n');
+
+% Aplicamos la estimación Sigma a los datos de los canals
+canales = {R, G1, G2, B};
+for k = 1:4
+    canal = canales{k};
+    canalSinNeg = canal;
+    % en caso de haber algun valor negativo lo ponemos a 0 igual que en apartados previos
+    canalSinNeg(canalSinNeg < 0) = 0;
+    % A partir de los valores positivos  estimamos el p0 corregido
+    nPositivos = sum(canalSinNeg(:) > 0);
+    pno0 = (nPositivos * 2) / numel(canalSinNeg);
+    p0real = 1 - pno0;
+    % calculamos las estimaciones
+    sigma_mejorada(k) = sqrt(2) / (4 * erfinv(p0real));
+    sigma_std2(k) = std2(double(canal));
+end
+
+% Mostramos resultados
+nombres = {'R', 'G1', 'G2', 'B'};
+fprintf('Estimación mejorada de sigma:\n');
+for k = 1:4
+    fprintf('%s = %.2f\n', nombres{k}, sigma_mejorada(k));
+end
+
+fprintf('\nEstimación de sigma con std2():\n');
+for k = 1:4
+    fprintf('%s = %.2f\n', nombres{k}, sigma_std2(k));
+end
+
+% Cargamos datos del ruido térmico
+load data_term
+% Guardamos el valor sigma estimado en S
+S = zeros(size(T));
+for k = 1:length(T)
+    frame = black(:,:,k);
+    S(k) = std2(double(frame));
+end
+% Gráfica de los valores obtenidos
+figure;
+plot(log2(T), S, 'o-');
+grid on;
+xlabel('log2(T)'); ylabel('\sigma estimada');
+title('Ruido térmico segun tiempo de exposición');
+% Mostramos también los valores obtenidos
+fprintf('Valores de T:\n');
+fprintf(' %.4f', T);
+fprintf('\n');
+fprintf('Valores de S:\n');
+fprintf(' %.4f', S);
+fprintf('\n');
 
 
 % 2) Estimación de otros tipos de ruido del sensor
-    clear; clc; close all;
+clear; clc; close all;
 
-    % Cargamos los datos
-    load data_noise
-    % Recorremos las 12 tomas y calculamos la  exposición media y la desviación estándar
-    for k = 1:length(T)
-        frame = G(:,:,k);
-        % Exposición media del fragmento
-        E(k) = mean2(frame);
-        % Ruido total del fragmento
-        S(k) = std2(frame);
-    end
-    % Gráfica de E vs T
-    figure;
-    plot(T, E, '-o');
-    grid on;
-    xlabel('Tiempo de exposición T (s)');
-    ylabel('Exposición media E (ADU)');
-    title('Ruido total frente a T');
-    % Mostramos resultados
-    fprintf('Valores de T:\n');
-    fprintf('| %.4f |', T);
-    fprintf('\n');
-    fprintf('Valores de E:\n');
-    fprintf('| %.4f |', E);
-    fprintf('\n');
-    fprintf('Valores de S:\n');
-    fprintf('| %.4f |', S);
-    fprintf('\n');
+% Cargamos los datos
+load data_noise
+% Recorremos las 12 tomas y calculamos la  exposición media y la desviación estándar
+for k = 1:length(T)
+    frame = G(:,:,k);
+    % Exposición media del fragmento
+    E(k) = mean2(frame);
+    % Ruido total del fragmento
+    S(k) = std2(frame);
+end
+% Gráfica de E vs T
+figure;
+plot(T, E, '-o');
+grid on;
+xlabel('Tiempo de exposición T (s)');
+ylabel('Exposición media E (ADU)');
+title('Ruido total frente a T');
+% Mostramos resultados
+fprintf('Valores de T:\n');
+fprintf('| %.4f |', T);
+fprintf('\n');
+fprintf('Valores de E:\n');
+fprintf('| %.4f |', E);
+fprintf('\n');
+fprintf('Valores de S:\n');
+fprintf('| %.4f |', S);
+fprintf('\n');
 
-    % Gráfica de S vs E
-    figure;
-    plot(E, S, 'ro', 'LineWidth', 1.5, 'MarkerSize', 6);
-    grid on;
-    xlabel('Exposición media E (ADU)');
-    ylabel('Desviación estándar S (ADU)');
-    title('Ruido total frente a exposición');
-    % Ajuste de S2
-    S2 = S.^2;
-    c = polyfit(E, S2, 2);
-    % Reordemaos porque los coeficientes en la funcón son devueltos de mayor a menor
-    c1 = c(3);
-    c2 = c(2);
-    c3 = c(1);
-    % Mostrar resultados
-    fprintf('\nCoeficientes del ajuste:\n');
-    fprintf('c1 = %.6f\n', c1);
-    fprintf('c2 = %.6f\n', c2);
-    fprintf('c3 = %.6f\n', c3);
-    fprintf( '-------------\n');
-    % Creamos vector de exposición y calculamos curva del ajuste
-    e = 1:2000;
-    s = sqrt(c1 + c2*e + c3*e.^2);
-    % Superponemos el ajuste sobre los datos medidos
-    figure;
-    plot(E, S, 'ro', 'LineWidth', 1.5, 'MarkerSize', 6);
-    hold on;
-    plot(e, s, 'b', 'LineWidth', 1.5);
-    grid on;
-    xlabel('Exposición media E (ADU)');
-    ylabel('Desviación estándar S (ADU)');
-    title('Ruido total frente a exposición y ajuste');
-    oR = sqrt(c1); G = c2; K = sqrt(c3);
-    disp(oR); disp(G);disp(K);
+% Gráfica de S vs E
+figure;
+plot(E, S, 'ro', 'LineWidth', 1.5, 'MarkerSize', 6);
+grid on;
+xlabel('Exposición media E (ADU)');
+ylabel('Desviación estándar S (ADU)');
+title('Ruido total frente a exposición');
+% Ajuste de S2
+S2 = S.^2;
+c = polyfit(E, S2, 2);
+% Reordemaos porque los coeficientes en la funcón son devueltos de mayor a menor
+c1 = c(3);
+c2 = c(2);
+c3 = c(1);
+% Mostrar resultados
+fprintf('\nCoeficientes del ajuste:\n');
+fprintf('c1 = %.6f\n', c1);
+fprintf('c2 = %.6f\n', c2);
+fprintf('c3 = %.6f\n', c3);
+fprintf( '-------------\n');
+% Creamos vector de exposición y calculamos curva del ajuste
+e = 1:2000;
+s = sqrt(c1 + c2*e + c3*e.^2);
+% Superponemos el ajuste sobre los datos medidos
+figure;
+plot(E, S, 'ro', 'LineWidth', 1.5, 'MarkerSize', 6);
+hold on;
+plot(e, s, 'b', 'LineWidth', 1.5);
+grid on;
+xlabel('Exposición media E (ADU)');
+ylabel('Desviación estándar S (ADU)');
+title('Ruido total frente a exposición y ajuste');
+oR = sqrt(c1); G = c2; K = sqrt(c3);
+disp(oR); disp(G);disp(K);
 
 % 3.1)  Lectura y escalado de los datos RAW
-    clear; clc; close all;
-    raw=imread('raw.pgm');  
-    % Convertimos la imagen al rango [0,1]
-    raw = double(raw) / 4095;
-    % Mostramos la imagen en blanco y negro
-    figure;
-    imshow(raw);
-    set(gcf, 'Name', 'Imagen BW');
-    title('Imagen RAW reescalada');
-    % Calculamos el valor máx
-    maximo = max(raw(:));
-    fprintf('Valor máximo de la imagen normalizada: %.4f\n', maximo);
-    % Calcular cuántos stops faltan hasta llegar al valor máximo 1
-    stops = log2(1 / maximo);
-    fprintf('Stops adicionales de exposición: %.2f\n', stops);
+clear; clc; close all;
+raw=imread('raw.pgm');
+% Convertimos la imagen al rango [0,1]
+raw = double(raw) / 4095;
+% Mostramos la imagen en blanco y negro
+figure;
+imshow(raw);
+set(gcf, 'Name', 'Imagen BW');
+title('Imagen RAW reescalada');
+% Calculamos el valor máx
+maximo = max(raw(:));
+fprintf('Valor máximo de la imagen normalizada: %.4f\n', maximo);
+% Calcular cuántos stops faltan hasta llegar al valor máximo 1
+stops = log2(1 / maximo);
+fprintf('Stops adicionales de exposición: %.2f\n', stops);
 
 % 3.1) Obtencion y procesado imagen BW
-    % Extraemos canales  de la imagen RAW ya normalizada
-    R  = raw(1:2:end, 1:2:end);
-    G1 = raw(1:2:end, 2:2:end);
-    G2 = raw(2:2:end, 1:2:end);
-    B  = raw(2:2:end, 2:2:end);
-    % Promedio los dos canales verdes
-    G = (G1 + G2) / 2;
-    % Creamos imagen en blanco y negro
-    bw = 0.3 * R + 0.59 * G + 0.11 * B;
-    % Mostramos la  imagen B/W (la que hemos creado)
-    figure;
-    imshow(bw);
-    set(gcf, 'Name', 'Imagen BW combinada');
-    title('Imagen B/W a partir del RAW');
-    % Mostramos histograma
-    figure;
-    histogram(bw(:));xlim([-0.05 1.05]);
-    grid on;
-    set(gcf, 'Name', 'Histograma BW');
-    title('Histograma de la imagen B/W');
+% Extraemos canales  de la imagen RAW ya normalizada
+R  = raw(1:2:end, 1:2:end);
+G1 = raw(1:2:end, 2:2:end);
+G2 = raw(2:2:end, 1:2:end);
+B  = raw(2:2:end, 2:2:end);
+% Promedio los dos canales verdes
+G = (G1 + G2) / 2;
+% Creamos imagen en blanco y negro
+bw = 0.3 * R + 0.59 * G + 0.11 * B;
+% Mostramos la  imagen B/W (la que hemos creado)
+figure;
+imshow(bw);
+set(gcf, 'Name', 'Imagen BW combinada');
+title('Imagen B/W a partir del RAW');
+% Mostramos histograma
+figure;
+histogram(bw(:));xlim([-0.05 1.05]);
+grid on;
+set(gcf, 'Name', 'Histograma BW');
+title('Histograma de la imagen B/W');
 
-    % Aplicamos la función corregir.m
-    bw_corregida = corregir(bw, 1.2776, 0.0541);
-    
+% Aplicamos corregir
+bw_corregida = corregir(bw, 1.2776, 0.0541);
+
 % 3.2) Demultiplexado, paso a sRGB + gamma
 
 % Generamos los nuevos canales sRGB
@@ -246,26 +246,26 @@ rgb = rgb / max_rgb;
 rgb(rgb < 0) = 0;
 rgb(rgb > 1) = 1;
 
-    % Aplicación de la función gamm
-    x0 = 0.00313;
-    a = 0.055;
-    gamma = 2.4;
-    % Inicializamos
-    rgb_gamma = zeros(size(rgb));
-    %Función gamma
-    mask = rgb < x0;
+% Aplicación de la función gamm
+x0 = 0.00313;
+a = 0.055;
+gamma = 2.4;
+% Inicializamos
+rgb_gamma = zeros(size(rgb));
+%Función gamma
+mask = rgb < x0;
 
-    rgb_gamma(mask) = 12.92 * rgb(mask);
-    rgb_gamma(~mask) = (1 + a) * rgb(~mask).^(1/gamma) - a;
+rgb_gamma(mask) = 12.92 * rgb(mask);
+rgb_gamma(~mask) = (1 + a) * rgb(~mask).^(1/gamma) - a;
 
-    % Mostramos valor valor max tras aplicar gamma
-    max_gamma = max(rgb_gamma(:));
-    fprintf('Valor máximo tras aplicar gamma: %.4f\n', max_gamma);
+% Mostramos valor valor max tras aplicar gamma
+max_gamma = max(rgb_gamma(:));
+fprintf('Valor máximo tras aplicar gamma: %.4f\n', max_gamma);
 
-    % Restultado
-    figure;
-    imshow(rgb_gamma);
-    title('sRGB + gamma');
+% Restultado
+figure;
+imshow(rgb_gamma);
+title('sRGB + gamma');
 
 % 3.3) Equilibrado de blancos
 
@@ -300,18 +300,23 @@ rgb_corr = corregir(rgb_wb, F, delta);
 
 
 % 3.4) Algoritmo alternativo WB
- fprintf("\n\n3.4\n\n")
- % Luminancia Y (espacio YIQ simplificado)
-Y = 0.299 * R + 0.587 * G + 0.114 * B;
+fprintf("\n\n3.4\n\n")
+YIQaux = im2double(rgb_gamma);
+YIQ = rgb2ntsc(YIQaux);
+Y = YIQ(:,:,1);
+I = YIQ(:,:,2);
+Q = YIQ(:,:,3);
+
+
 
 % Umbral (66% del máximo)
 umbral = 0.66 * max(Y(:));
-mask = Y >= umbral;
+usar = Y > umbral;
 
 % Medias, solo en píxeles brillantes
-meanR = mean(R(mask));
-meanG = mean(G(mask));
-meanB = mean(B(mask));
+meanR = mean(R(usar));
+meanG = mean(G(usar));
+meanB = mean(B(usar));
 
 fprintf('Medias: R=%.4f, G=%.4f, B=%.4f\n', meanR, meanG, meanB);
 
@@ -335,36 +340,36 @@ title('White Balance Alternativo');
 
 % Mostramos píxeles usados
 
-R_mask = R .* mask;
-G_mask = G .* mask;
-B_mask = B .* mask;
+R_usar = R .* usar;
+G_usar = G .* usar;
+B_usar = B .* usar;
 
-rgb_mask = cat(3, R_mask, G_mask, B_mask);
+rgb_usar = cat(3, R_usar, G_usar, B_usar);
 
 figure;
-imshow(rgb_mask);
+imshow(rgb_usar);
 title('Pixeles usados para estimar la iluminacion');
 
 
-% Calculamos I y Q
-I = 0.596 * R - 0.275 * G - 0.321 * B;
-Q = 0.212 * R - 0.523 * G + 0.311 * B;
+
 
 % Calculamos col
 col = (abs(I) + abs(Q)) ./ (Y + eps);
 
 % Nueva máscara
-mask2 = (Y >= 0.66 * max(Y(:))) & (col < 0.33);
+umbral2 = col < 0.33;
+
+usar2 = (Y > umbral) & umbral2;
 
 %  píxeles usados
-rgb_mask2 = cat(3, R .* mask2, G .* mask2, B .* mask2);
-figure; imshow(rgb_mask2);
+rgb_usar2 = cat(3, R .* usar2, G .* usar2, B .* usar2);
+figure; imshow(rgb_usar2);
 title('Pixeles usados (brillo + poco color)');
 
 % Nuevas medias
-meanR2 = mean(R(mask2));
-meanG2 = mean(G(mask2));
-meanB2 = mean(B(mask2));
+meanR2 = mean(R(usar2));
+meanG2 = mean(G(usar2));
+meanB2 = mean(B(usar2));
 
 % Nuevos factores
 fR2 = meanG2 / meanR2;
@@ -380,8 +385,8 @@ B_new = B * fB2;
 rgb_new = cat(3, R_new, G_new, B_new);
 
 % Aplicamos WB
-    F = 1.21;      
-    delta = 0.043; 
+F = 1.165;
+delta = 0.03;
 
 rgb_final = corregir(rgb_new, F, delta);
 
@@ -389,58 +394,58 @@ figure;
 imshow(rgb_final);
 title('WB mejorado + correccion BC');
 
-% 3.5) Almacenamiento
+%3.5) Almacenamiento
 
 % Volvemos a una imagen de bytes (8 bits por canal)
 im_out = uint8(255 * rgb_final);
 % Guardamos versión sin perdidas
 imwrite(im_out, 'foto.tif');
 % Guardado JPEG con distintas calidades
-    calidades = [98, 95, 90];
-    info_tif = dir('foto.tif');
-    tam_sin_comprimir = info_tif.bytes;
-    for Q = calidades
-        nombre_jpg = ['foto' num2str(Q) '.jpg'];
-        imwrite(im_out, nombre_jpg, 'Quality', Q);
+calidades = [98, 95, 90];
+info_tif = dir('foto.tif');
+tam_sin_comprimir = info_tif.bytes;
+for Q = calidades
+    nombre_jpg = ['foto' num2str(Q) '.jpg'];
+    imwrite(im_out, nombre_jpg, 'Quality', Q);
 
-        info_jpg = dir(nombre_jpg);
-        factor_compresion = info_tif.bytes / info_jpg.bytes;
-        % Mostramos resultados
-        fprintf('JPEG Q=%d: %d bytes (%.3f MB) -> factor de compresion = %.3f\n', ...
-            Q, info_jpg.bytes, info_jpg.bytes / 1e6, factor_compresion);
-    end
+    info_jpg = dir(nombre_jpg);
+    factor_compresion = info_tif.bytes / info_jpg.bytes;
+    % Mostramos resultados
+    fprintf('JPEG Q=%d: %d bytes (%.3f MB) -> factor de compresion = %.3f\n', ...
+        Q, info_jpg.bytes, info_jpg.bytes / 1e6, factor_compresion);
+end
 % === FUNCION corregir.m ===
 function im_corr = corregir(im, F, delta)
-    % Normalizamos la imagen al rango [0,1]
-    m = min(im(:));
-    M = max(im(:));
-    im_norm = (im - m) / (M - m);
-    % Aplicamos la corrección de brillo y contraste
-    im_mod = F * im_norm - delta;
-    % Calculamos el  porcentaje de píxeles saturados antes de recortar
-    % (Cambios)
-    [Mdim, Ndim, ~] = size(im_mod);
+% Normalizamos la imagen al rango [0,1]
+m = min(im(:));
+M = max(im(:));
+im_norm = (im - m) / (M - m);
+% Aplicamos la corrección de brillo y contraste
+im_mod = F * im_norm - delta;
+% Calculamos el  porcentaje de píxeles saturados antes de recortar
+% (Cambios)
+[Mdim, Ndim, ~] = size(im_mod);
 
-    sat_neg = any(im_mod < 0, 3);
-    sat_pos = any(im_mod > 1, 3);
+sat_neg = any(im_mod < 0, 3);
+sat_pos = any(im_mod > 1, 3);
 
-    p_neg = 100 * sum(sat_neg(:)) / (Mdim * Ndim);
-    p_pos = 100 * sum(sat_pos(:)) / (Mdim * Ndim);
-    fprintf('Pixeles saturados por debajo de 0: %.4f %%\n', p_neg);
-    fprintf('Pixeles saturados por encima de 1: %.4f %%\n', p_pos);
-    % Recortamos valores al intervalo [0,1]
-    im_corr = im_mod;
-    im_corr(im_corr < 0) = 0;
-    im_corr(im_corr > 1) = 1;
-    % Mostramos la imagen corregida
-    figure;
-    imshow(im_corr);
-    set(gcf, 'Name', 'Corrección Brillo-Contraste');
-    title(sprintf('Imagen corregida (F = %.4f, \\delta = %.4f)', F, delta));
-    % Mostramos el histograma
-    figure;
-    histogram(im_corr(:));
-    xlim([-0.05 1.05]);
-    grid on;
-    title(sprintf('Histograma corregido (F = %.4f, \\delta = %.4f)', F, delta));
-    end
+p_neg = 100 * sum(sat_neg(:)) / (Mdim * Ndim);
+p_pos = 100 * sum(sat_pos(:)) / (Mdim * Ndim);
+fprintf('Pixeles saturados por debajo de 0: %.4f %%\n', p_neg);
+fprintf('Pixeles saturados por encima de 1: %.4f %%\n', p_pos);
+% Recortamos valores al intervalo [0,1]
+im_corr = im_mod;
+im_corr(im_corr < 0) = 0;
+im_corr(im_corr > 1) = 1;
+% Mostramos la imagen corregida
+figure;
+imshow(im_corr);
+set(gcf, 'Name', 'Corrección Brillo-Contraste');
+title(sprintf('Imagen corregida (F = %.4f, \\delta = %.4f)', F, delta));
+% Mostramos el histograma
+figure;
+histogram(im_corr(:));
+xlim([-0.05 1.05]);
+grid on;
+title(sprintf('Histograma corregido (F = %.4f, \\delta = %.4f)', F, delta));
+end
