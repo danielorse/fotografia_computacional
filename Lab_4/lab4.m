@@ -44,4 +44,16 @@
 
  % Ampliación de una imagen
     
+    % Función que recipe una imagen y la amplía al doble de su tamaño
+    function im2 = amplia(im)
+    [N,M,C] = size(im);
+    im2 = zeros(2*N, 2*M, C, class(im));
+    im2(1:2:end, 1:2:end, :) = im;
+    end
+
+    imagen = imread('brick.jpg');
+    im3 = amplia(imagen);
+    figure, imshow(im3);
+    title('Imagen ampliada');
+
     
