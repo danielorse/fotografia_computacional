@@ -25,8 +25,7 @@ P_inv = inv(P);
 
 show_mat(P_inv);
 
-% revisar esta línea
-x = [275 655 365 251];
+x = [275 655 365 25];
 y = [30 285 755 340];
 u = [0 600 465 215];
 v = [0 65 680 585];
@@ -58,6 +57,12 @@ disp("Proporcion P2 y inv P")
 disp(P2./iP);
 
 %Deformación de una imagen usando transformaciones lineales
+im = double(imread('foto.jpg')) / 255;
+im2 = warp_img(im, iP);
+figure; imshow(im2); title('Imagen deformada');
+
+%imselfie = imread('SelfiePersonal1.jpg');
+%demoP4(imselfie);
 
 %FUNCIONES
 function [u,v] = convertir(x,y,P)
@@ -116,10 +121,5 @@ end
 for c = 1:C
     im2(:,:,c) = interp2(im(:,:,c), X, Y, 'bicubic');
 end
+end 
 
-end % end de la función
-
-im = double(imread('foto.jpg')) / 255;
-iP = inv(P);
-im2 = warp_img(im, iP);
-figure; imshow(im2); title('Imagen deformada');
