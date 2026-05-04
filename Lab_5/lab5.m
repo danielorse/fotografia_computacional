@@ -25,11 +25,12 @@ P_inv = inv(P);
 
 show_mat(P_inv);
 
+% revisar esta línea
+x = [275 655 365 251];
+y = [30 285 755 340];
+u = [0 600 465 215];
+v = [0 65 680 585];
 
-x = [0 600 465 215];
-y = [0 65 680 585];
-u = [275 655 365 251];
-v = [30 285 755 340];
 
 P = get_proy(x,y,u,v);
 
@@ -56,7 +57,7 @@ show_mat(iP);
 disp("Proporcion P2 y inv P")
 disp(P2./iP);
 
-%Deformación de una imagen usando transformaciones lineales 
+%Deformación de una imagen usando transformaciones lineales
 
 %FUNCIONES
 function [u,v] = convertir(x,y,P)
@@ -88,3 +89,37 @@ P = [sol(1:3)';
      sol(7:8)' 1];
 
 end
+
+%Deformación de una imagen usando transformaciones lineales (DANI)
+
+function im2 = warp_img(im, iP)
+
+% Dimensiones de la imagen
+[N, M, C] = size(im);
+
+% Reservamos la imagen de salida y matrices de coordenadas a interpolar
+im2 = zeros(N, M, C);
+X = zeros(N, M);  
+Y = zeros(N, M);  
+
+% Recorremos las coordenadas en la imagen de salida
+for u = 1:M
+    for v = 1:N
+        % Aplicamos transformación inversa
+        [x, y] = convertir(u, v, iP);
+        X(v, u) = x;
+        Y(v, u) = y;
+    end
+end
+
+% Interpolamos cada plano de color por separado
+for c = 1:C
+    im2(:,:,c) = interp2(im(:,:,c), X, Y, 'bicubic');
+end
+
+end % end de la función
+
+im = double(imread('foto.jpg')) / 255;
+iP = inv(P);
+im2 = warp_img(im, iP);
+figure; imshow(im2); title('Imagen deformada');
