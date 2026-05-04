@@ -123,3 +123,49 @@ for c = 1:C
 end
 end 
 
+% IMÁGENES RECURSIVAS
+
+% == Transformación de la imagen dentro del espacio del cartel ==
+% Cargamos billboard jpg
+im_cartel = double(imread('billboard.jpg')) / 255;
+[N, M, ~] = size(im_cartel);
+
+% Medimos las esquinas del cartel
+figure; imshow(im_cartel);
+title('Haz clic en las 4 esquinas que queramos: Superior-Izq, Superior-Der, Inferior-Der, Inferior-Izq');
+hold on;
+
+u_cartel = zeros(1,4);
+v_cartel = zeros(1,4);
+for k = 1:4
+    [u_cartel(k), v_cartel(k)] = ginput(1);
+    plot(u_cartel(k), v_cartel(k), 'g.', 'MarkerSize', 20);
+end
+hold off;
+
+% Ajustamos las coordenadas
+x_cartel = [1      M   M   1     ];
+y_cartel = [1      1     N   N  ];
+% Calculamos P
+P = get_proy(x_cartel, y_cartel, u_cartel, v_cartel);
+fprintf('Matriz P del cartel:\n');
+show_mat(P);
+
+iP = inv(P);
+im_en_cartel = warp_img(im_cartel, iP);
+figure; imshow(im_en_cartel); title('Transformación dentro del espacio del cartel');
+
+% == Fusión de las imágenes ==
+% Usamos una máscara para identificar los píxeles que nos sirven de la imagen deformada
+mascara = ~isnan(im_en_cartel(:,:,1));   % matriz lógica NxM
+
+% Para cada canal reemplazamos los píxeles
+im_fusion = im;                          % partimos de la imagen original
+for c = 1:size(im, 3)
+    canal_orig      = im(:,:,c);
+    canal_deformado = im_en_cartel(:,:,c);
+    canal_orig(mascara) = canal_deformado(mascara);
+    im_fusion(:,:,c) = canal_orig;
+end
+
+figure; imshow(im_fusion); title('Imagen fusionada');
