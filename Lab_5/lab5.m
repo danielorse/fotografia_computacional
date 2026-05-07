@@ -157,15 +157,10 @@ figure; imshow(im_en_cartel); title('Transformación dentro del espacio del cart
 
 % == Fusión de las imágenes ==
 % Usamos una máscara para identificar los píxeles que nos sirven de la imagen deformada
-mascara = ~isnan(im_en_cartel(:,:,1));   % matriz lógica NxM
+mascara = ~isnan(im_en_cartel(:,:,1));   % matriz NxM
 
 % Para cada canal reemplazamos los píxeles
-im_fusion = im;                          % partimos de la imagen original
-for c = 1:size(im, 3)
-    canal_orig      = im(:,:,c);
-    canal_deformado = im_en_cartel(:,:,c);
-    canal_orig(mascara) = canal_deformado(mascara);
-    im_fusion(:,:,c) = canal_orig;
-end
+im_fusion = im_cartel;                          % partimos de la imagen original
+im_fusion(mascara) = im_en_cartel(mascara);  % reemplazamos los píxeles que nos sirven
 
 figure; imshow(im_fusion); title('Imagen fusionada');
