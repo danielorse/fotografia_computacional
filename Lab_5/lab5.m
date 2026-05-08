@@ -152,15 +152,30 @@ fprintf('Matriz P del cartel:\n');
 show_mat(P);
 
 iP = inv(P);
-im_en_cartel = warp_img(im_cartel, iP);
-figure; imshow(im_en_cartel); title('Transformación dentro del espacio del cartel');
+im_deformada = warp_img(im_cartel, iP);
+figure; imshow(im_deformada); title('Transformación dentro del espacio del cartel');
+
 
 % == Fusión de las imágenes ==
-% Usamos una máscara para identificar los píxeles que nos sirven de la imagen deformada
-mascara = ~isnan(im_en_cartel(:,:,1));   % matriz NxM
-
-% Para cada canal reemplazamos los píxeles
-im_fusion = im_cartel;                          % partimos de la imagen original
-im_fusion(mascara) = im_en_cartel(mascara);  % reemplazamos los píxeles que nos sirven
-
+% Calcula la mascara de la imagen
+mascara = ~isnan(im_deformada);
+% Borramos la zona del cartel en la imagen original
+im_fusion = im_cartel;
+im_fusion(mascara) = 0;
+% Pegamos la imagen deformada en la zona del cartel
+im_fusion(mascara) = im_deformada(mascara);
 figure; imshow(im_fusion); title('Imagen fusionada');
+
+% Repetimos el proceso sin volver a medir la zona del cartel
+im_bucle = im_fusion;
+for copias = 1:3 % Numero de veces que queremos repetir el proceso
+    im_deformada_k = warp_img(im_bucle, iP);
+    mascara_k = ~isnan(im_deformada_k(:,:,1));
+    for c = 1:size(im_bucle, 3)
+        canal = im_bucle(:,:,c);
+        canal_d = im_deformada_k(:,:,c);
+        canal(mascara_k) = canal_d(mascara_k);
+        im_bucle(:,:,c) = canal;
+    end
+end
+figure; imshow(im_bucle); title('Imagen recursiva');
