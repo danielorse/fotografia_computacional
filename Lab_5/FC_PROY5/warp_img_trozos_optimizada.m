@@ -1,4 +1,4 @@
-function im2 = warp_img_trozos_opt(im, iP, zona)
+function im2 = warp_img_trozos_optimizada(im, iP, zona)
 
 % Dimensiones de la imagen
 [N, M, C] = size(im);
