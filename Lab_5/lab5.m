@@ -218,7 +218,7 @@ figure;
 imshow(im1); hold on;
 plot(x1, y1, 'r.', 'MarkerSize', 12);
 title('willis.jpg con puntos de control');
-hold off;
+hold off;   
 
 % Calculamos los puntos medios
 u = 0.5 * (x1 + x2);
@@ -258,7 +258,7 @@ fprintf('\niP2 triángulo 3:\n'); show_mat(iP2{3});
 
 
 % RUTINA DE DEFORMAR UNA IMAGEN
-%fprintf('Escribimos una rutina para deformar una imagen\n');
+
 % Comprobamos los valorees para poder elegir la mejor transformacion
 
 [N, M, ~] = size(im1);
@@ -321,15 +321,117 @@ t_rapida = toc;
 fprintf('Versión optimizada    (100x): %.3f s  →  %.4f s/iter\n', t_rapida, t_rapida/N_rep);
 fprintf('Aceleración: x%.1f\n', t_lenta/t_rapida);
 
+% IMAGENES PROPIAS MORPHING
+
+% Cargamos nuestras imágenes 
+im1 = double(imread('SelfieDani.jpg'))  / 255;  
+im2 = double(imread('SelfieLucas.jpg')) / 255;   
+
+% Igualamos nuestras imágenes al msimo tamaño
+N = min(size(im1,1), size(im2,1));
+M = min(size(im1,2), size(im2,2));
+im1 = im1(1:N, 1:M, :);
+im2 = im2(1:N, 1:M, :);
+
+%marcar_puntos('SelfieDani.jpg', 'SelfieLucas.jpg')
+
+% Cargamos los puntos de control
+load puntos 
 
 
-%%IMAGENES PROPIAS A IMPLEMENTAR EN CLASE MAÑANA
+x1 = x1(:)'
+ y1 = y1(:)'
+x2 = x2(:)'
+ y2 = y2(:)'
 
+% Calculamos puntos medios (t=0.5)
+t = 0.5;
+u = (1-t) * x1 + t * x2;
+v = (1-t) * y1 + t * y2;
 
+% Triangulación 
+T  = delaunay(u, v);
+NT = size(T, 1);
+fprintf('Número de triángulos NT = %d\n', NT);
 
+% Calculamos matrices 
+iP1 = cell(1, NT);
+iP2 = cell(1, NT);
 
+for k = 1:NT
+    idx = T(k, :);
+    X1 = x1(idx);  Y1 = y1(idx);
+    X2 = x2(idx);  Y2 = y2(idx);
+    U  = u(idx);   V  = v(idx);
+    iP1{k} = get_afin(U, V, X1, Y1);
+    iP2{k} = get_afin(U, V, X2, Y2);
+end
 
+% Calculamos los pixeses
+[N, M, ~] = size(im1);
+zona = determina_triang(T, u, v, N, M);
 
+% Deformamos las imagenes
+im1_def = warp_img_trozos(im1, iP1, zona);
+im2_def = warp_img_trozos(im2, iP2, zona);
+
+figure; imshow(im1_def); title('SelfieDani deformada (t=0.5)');
+figure; imshow(im2_def); title('SelfieLucas deformada (t=0.5)');
+% morphing
+im_mezcla = 0.5 * im1_def + 0.5 * im2_def;
+figure; imshow(im_mezcla); title('Morphing fotos propias t=0.5');
+
+% TRANSICION DE UNA IMAGEN A OTRA
+% Vector de 40 valores de t: de 0 a 1 y vuelta a 0
+t_vec = [(0:0.05:1) (0.95:-0.05:0.05)];
+
+fprintf('Generando %d fotogramas...\n', length(t_vec));
+
+% Creamos una carpeta para guardar las fotos
+carpeta = 'fotogramas_gif';
+if ~exist(carpeta, 'dir')
+    mkdir(carpeta);
+end
+for k = 1:length(t_vec)
+
+    t = t_vec(k);
+
+    % Puntos medios para este t
+    u_k = (1-t) * x1 + t * x2;
+    v_k = (1-t) * y1 + t * y2;
+
+    % Triangulación (la misma T, solo cambian los pesos)
+    iP1_k = cell(1, NT);
+    iP2_k = cell(1, NT);
+
+    for j = 1:NT
+        idx  = T(j, :);
+        X1   = x1(idx); Y1 = y1(idx);
+        X2   = x2(idx); Y2 = y2(idx);
+        U    = u_k(idx); V  = v_k(idx);
+        iP1_k{j} = get_afin(U, V, X1, Y1);
+        iP2_k{j} = get_afin(U, V, X2, Y2);
+    end
+
+    % Zona de triángulos para este t
+    zona_k = determina_triang(T, u_k, v_k, N, M);
+
+    % Deformar ambas imágenes
+    im1_k = warp_img_trozos(im1, iP1_k, zona_k);
+    im2_k = warp_img_trozos(im2, iP2_k, zona_k);
+
+    % Mezcla ponderada
+    res = (1-t) * im1_k + t * im2_k;
+
+    % Guardar fotograma
+    fich = sprintf('%s/mezcla%02d.jpg', carpeta, k);
+    imwrite(res, fich, 'Quality', 95);
+
+    fprintf('  Fotograma %02d/%02d  (t=%.2f) guardado: %s\n', ...
+             k, length(t_vec), t, fich);
+end
+
+fprintf('¡Todos los fotogramas generados!\n');
 
 fprintf("\n\n\n\n\n\n\nTransformaciones no lineales y sus inconvenientes\n")
 
