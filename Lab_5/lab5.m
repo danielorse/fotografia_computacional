@@ -66,17 +66,39 @@ figure; imshow(im2); title('Imagen deformada');
 
 %FUNCIONES
 function [u,v] = convertir(x,y,P)
+
 x = x(:)';
 y = y(:)';
 
-X = [x; y; ones(1,length(x))];
+% CASO LINEAL
 
-U = P * X;
+if numel(P) == 9
 
-u = U(1,:) ./ U(3,:);
-v = U(2,:) ./ U(3,:);
+    X = [x;
+         y;
+         ones(1,length(x))];
+
+    U = P * X;
+
+    u = U(1,:) ./ U(3,:);
+    v = U(2,:) ./ U(3,:);
+
+% CASO NO LINEAL 
+else
+
+    X = [ones(1,length(x));
+         x;
+         y;
+         x.*y];
+
+    U = P * X;
+
+    u = U(1,:);
+    v = U(2,:);
+
 end
 
+end
 
 function P=get_proy(x,y,u,v)
 
@@ -298,3 +320,132 @@ end
 t_rapida = toc;
 fprintf('Versión optimizada    (100x): %.3f s  →  %.4f s/iter\n', t_rapida, t_rapida/N_rep);
 fprintf('Aceleración: x%.1f\n', t_lenta/t_rapida);
+
+
+
+%%IMAGENES PROPIAS A IMPLEMENTAR EN CLASE MAÑANA
+
+
+
+
+
+
+
+fprintf("\n\n\n\n\n\n\nTransformaciones no lineales y sus inconvenientes\n")
+
+% 3) Transformaciones no lineales y sus inconvenientes
+
+x = [263 407 680 1];
+y = [306 279 800 800];
+
+u = [92 511 498 173];
+v = [232 313 766 752];
+
+P = get_nolineal(x,y,u,v);
+
+show_mat(P);
+
+
+[u2,v2] = convertir(x,y,P);
+
+du = u2 - u;
+dv = v2 - v;
+
+fprintf('Diferencias entre (u,v) y (u2,v2):\n');
+disp([du' dv'])
+
+
+% Matriz iP
+iP = get_nolineal(u,v,x,y);
+
+show_mat(iP);
+
+
+% Diferencias entre coordenadas originales y recuperadas
+[x2,y2] = convertir(u,v,iP);
+
+dx = x2 - x;
+dy = y2 - y;
+
+fprintf('Diferencias entre (x,y) y (x2,y2):\n');
+disp([dx' dy'])
+
+im = double(imread('foto.jpg')) / 255;
+im2 = warp_img(im, iP);
+figure; imshow(im2); title('Imagen deformada v2');
+
+% Volver a probar desde (200,100)
+[u3,v3] = convertir(200,100,P);
+
+[x3,y3] = convertir(u3,v3,iP);
+
+fprintf('Punto regreso:\n');
+disp([x3 y3])
+
+% Warping directo
+im = double(imread('foto.jpg')) / 255;
+
+im2 = warp_directo(im,P);
+
+figure;
+imshow(im2);
+title('Warping directo');
+
+
+
+function P = get_nolineal(x,y,u,v)
+
+x = x';
+y = y';
+u = u';
+v = v';
+
+z = 0*x;
+unos = x.^0;
+
+xy = x .* y;
+
+M = [unos x y xy z z z z;
+     z z z z unos x y xy];
+
+uv = [u;v];
+
+sol = M \ uv;
+
+P = [sol(1:4)';
+     sol(5:8)'];
+
+end
+
+function [u,v] = convertir_nolineal(x,y,P)
+
+u = P(1,1) + P(1,2)*x + P(1,3)*y + P(1,4)*x.*y;
+
+v = P(2,1) + P(2,2)*x + P(2,3)*y + P(2,4)*x.*y;
+
+end
+
+function im2 = warp_directo(im,P)
+
+[N,M,C] = size(im);
+
+im2 = zeros(N,M,C);
+
+for y = 1:N
+    for x = 1:M
+
+        [u,v] = convertir(x,y,P);
+
+        u = round(u);
+        v = round(v);
+
+        if u >= 1 && u <= M && v >= 1 && v <= N
+
+            im2(v,u,:) = im(y,x,:);
+
+        end
+
+    end
+end
+
+end
